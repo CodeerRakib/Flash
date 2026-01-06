@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { SystemStatus, TranscriptEntry, ProcessInfo } from './types';
+import { supabase, saveTranscript, fetchTranscripts } from './supabase';
 import Header from './components/Header';
 import VisualInput from './components/VisualInput';
 import SystemMetrics from './components/SystemMetrics';
@@ -18,10 +19,12 @@ Your personality:
 - Always detect the user's language and respond in the same language (English, Bangla, or Hindi).
 - Proactive and smart. Natural, conversational tone.
 - When providing code, ALWAYS provide Python scripts that solve the user's problem. 
-- You are modeled after high-end AI assistants like Jarvis, but with a warm female persona.`;
+- You are modeled after high-end AI assistants like Jarvis, but with a warm female persona.
+- You have a memory module (Supabase) that allows you to recall previous conversations if asked.`;
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<SystemStatus>(SystemStatus.ONLINE);
+  const [dbStatus, setDbStatus] = useState<'IDLE' | 'SYNCING' | 'ERROR' | 'DISABLED'>('IDLE');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [cameraActive, setCameraActive] = useState(true);
@@ -48,7 +51,22 @@ const App: React.FC = () => {
     { name: 'coreaudiod', cpu: 8.3, mem: 0.3 }
   ]);
 
+  // Load history from Supabase on mount
   useEffect(() => {
+    if (!supabase) {
+      setDbStatus('DISABLED');
+    } else {
+      const loadHistory = async () => {
+        setDbStatus('SYNCING');
+        const history = await fetchTranscripts();
+        if (history.length > 0) {
+          setTranscript(history);
+        }
+        setDbStatus('IDLE');
+      };
+      loadHistory();
+    }
+
     const interval = setInterval(() => {
       setCpuLoad(prev => Math.min(100, Math.max(0.5, prev + (Math.random() * 2 - 1))));
       setRamUsage(prev => Math.min(100, Math.max(10, prev + (Math.random() * 0.1 - 0.05))));
@@ -56,8 +74,20 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const addTranscript = useCallback((role: 'user' | 'flash', text: string) => {
-    setTranscript(prev => [...prev, { role, text, timestamp: new Date() }]);
+  const addTranscript = useCallback(async (role: 'user' | 'flash', text: string) => {
+    const newEntry: TranscriptEntry = { role, text, timestamp: new Date() };
+    setTranscript(prev => [...prev, newEntry]);
+    
+    // Save to Supabase if available
+    if (supabase) {
+      setDbStatus('SYNCING');
+      try {
+        await saveTranscript(role, text);
+        setDbStatus('IDLE');
+      } catch (e) {
+        setDbStatus('ERROR');
+      }
+    }
   }, []);
 
   // Standard decoding logic for raw PCM data from Gemini Live API
@@ -84,7 +114,6 @@ const App: React.FC = () => {
     return buffer;
   };
 
-  // Standard encoding logic for raw PCM data to Gemini Live API
   const encode = (bytes: Uint8Array) => {
     let binary = '';
     const len = bytes.byteLength;
@@ -107,7 +136,6 @@ const App: React.FC = () => {
       setIsListeningForWakeWord(false);
     }
     try {
-      // Create a new GoogleGenAI instance inside the start session function as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -126,7 +154,6 @@ const App: React.FC = () => {
             const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
             scriptProcessor.onaudioprocess = (e) => {
               const pcmBlob = createBlob(e.inputBuffer.getChannelData(0));
-              // CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`, do not add other condition checks.
               sessionPromise.then(s => s.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(scriptProcessor);
@@ -186,13 +213,6 @@ const App: React.FC = () => {
     } catch (err) { console.error('Failed to start session:', err); }
   };
 
-  const toggleHandsFree = async () => {
-    if (!handsFreeEnabled) {
-      try { await navigator.mediaDevices.getUserMedia({ audio: true }); setHandsFreeEnabled(true); } 
-      catch (err) { console.error("Flash requires microphone access."); }
-    } else setHandsFreeEnabled(false);
-  };
-
   const endSession = () => {
     if (sessionPromiseRef.current) { 
       sessionPromiseRef.current.then(s => s.close()); 
@@ -209,16 +229,29 @@ const App: React.FC = () => {
       <Header status={status} activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 lg:gap-3 overflow-hidden">
-        {/* Left Column */}
         <div className={`
           lg:col-span-3 lg:flex flex-col space-y-3 h-full overflow-hidden
           ${activeTab === 'VISION' || activeTab === 'METRICS' || activeTab === 'DASHBOARD' ? 'flex flex-1' : 'hidden lg:flex'}
         `}>
           {(activeTab === 'VISION' || activeTab === 'DASHBOARD') && <VisualInput active={cameraActive} />}
-          {(activeTab === 'METRICS' || activeTab === 'DASHBOARD') && <SystemMetrics cpu={cpuLoad} ram={ramUsage} processes={processes} />}
+          {(activeTab === 'METRICS' || activeTab === 'DASHBOARD') && (
+            <div className="flex flex-col flex-1 space-y-3 overflow-hidden">
+              <SystemMetrics cpu={cpuLoad} ram={ramUsage} processes={processes} />
+              <div className="glass-panel p-3 rounded-lg border-white/5 bg-black/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${
+                    dbStatus === 'SYNCING' ? 'bg-amber-500 animate-pulse' : 
+                    dbStatus === 'ERROR' ? 'bg-red-500' : 
+                    dbStatus === 'DISABLED' ? 'bg-zinc-700' : 'bg-cyan-500'
+                  } shadow-[0_0_8px_currentColor]`} />
+                  <span className="text-[9px] font-bold text-zinc-400 tracking-widest uppercase">Supabase Cloud Memory</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-500">{dbStatus}</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Center Column */}
         <div className={`
           lg:col-span-6 flex flex-col h-full overflow-hidden
           ${activeTab === 'DASHBOARD' || activeTab === 'PYTHON' ? 'flex flex-1' : 'hidden lg:flex'}
@@ -243,17 +276,16 @@ const App: React.FC = () => {
                   micActive={micActive}
                   setMicActive={setMicActive}
                   handsFreeEnabled={handsFreeEnabled}
-                  onToggleHandsFree={toggleHandsFree}
+                  onToggleHandsFree={() => setHandsFreeEnabled(!handsFreeEnabled)}
                 />
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Column */}
         <div className={`
           lg:col-span-3 h-full overflow-hidden
-          ${activeTab === 'LOG' ? 'flex flex-1' : 'hidden lg:flex'}
+          ${activeTab === 'LOG' || activeTab === 'DASHBOARD' ? 'flex flex-1' : 'hidden lg:flex'}
         `}>
           <Transcript 
             entries={transcript} 
@@ -266,7 +298,7 @@ const App: React.FC = () => {
 
       <footer className="h-6 flex items-center justify-center border-t border-white/5">
         <span className="text-[10px] text-zinc-600 font-mono tracking-widest flex items-center gap-1">
-          CREATED WITH <span className="text-red-500">❤️</span> FLASH AI // JARVIS PROTOCOL
+          DEPLOYED VIA RENDER // DATABASE: SUPABASE // JARVIS PROTOCOL
         </span>
       </footer>
     </div>
