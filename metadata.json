@@ -1,0 +1,8 @@
+{
+  "name": "Flash - Jarvis AI",
+  "description": "An advanced, proactive personal AI assistant with a futuristic Jarvis-inspired dashboard, real-time audio interaction, and system monitoring visualization.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
