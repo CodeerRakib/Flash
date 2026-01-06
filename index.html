@@ -1,65 +1,71 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flash AI - HUD Dashboard</title>
+    <title>FLASH AI - HUD Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --cyan-glow: #22d3ee;
+            --panel-bg: rgba(6, 11, 15, 0.85);
+            --border-color: rgba(34, 211, 238, 0.15);
+        }
         body {
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: #050505;
-            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background-color: #010406;
+            color: #94a3b8;
             overflow: hidden;
             height: 100vh;
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
+        .font-hud { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
         .glass-panel {
-            background: rgba(10, 10, 12, 0.4);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(34, 211, 238, 0.15);
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
         }
-        .glow-cyan {
-            box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(34, 211, 238, 0.2);
-            border-radius: 10px;
-        }
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
+        .widget-header {
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.08) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .scanline {
             width: 100%;
             height: 100vh;
-            background: linear-gradient(to bottom, transparent 0%, rgba(34, 211, 238, 0.03) 50%, transparent 100%);
+            background: linear-gradient(to bottom, transparent 0%, rgba(34, 211, 238, 0.01) 50%, transparent 100%);
             position: absolute;
             top: 0;
             left: 0;
             pointer-events: none;
             z-index: 100;
-            animation: scanline 8s linear infinite;
+            animation: scan 8s linear infinite;
         }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.2); border-radius: 10px; }
+        .status-badge {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            padding: 1px 6px;
+            border-radius: 12px;
         }
     </style>
 <script type="importmap">

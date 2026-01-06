@@ -1,22 +1,18 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * Flash System Cloud Memory Configuration
- * Uses provided credentials to ensure persistence is active.
- */
-const supabaseUrl = process.env.SUPABASE_URL || 'https://ujyrusqbwdcyfybyuszn.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Qf5cXlKcAxm70X57sRxrcw_vYCnGBKk';
+const supabaseUrl = 'https://ujyrusqbwdcyfybyuszn.supabase.co';
+const supabaseAnonKey = 'sb_publishable_Qf5cXlKcAxm70X57sRxrcw_vYCnGBKk';
 
-// Robust initialization check: prevent "supabaseUrl is required" error by verifying URL presence and format.
-export const supabase = (supabaseUrl && supabaseUrl.startsWith('http')) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+let isTableMissing = false;
 
 /**
  * Saves a transcript entry to the cloud database.
  */
-export const saveTranscript = async (role: 'user' | 'flash', text: string) => {
-  if (!supabase) return;
+export const saveTranscript = async (role: 'user' | 'flash', text: string): Promise<boolean> => {
+  if (!supabase || isTableMissing) return false;
   
   try {
     const { error } = await supabase
@@ -27,9 +23,17 @@ export const saveTranscript = async (role: 'user' | 'flash', text: string) => {
         created_at: new Date().toISOString() 
       }]);
     
-    if (error) console.error('Database Sync Error:', error);
-  } catch (err) {
-    console.error('Supabase save failed:', err);
+    if (error) {
+      if (error.message.includes('Could not find the table')) {
+        isTableMissing = true;
+        console.error('FLASH_DB_ERROR: Table "flash_transcripts" is missing. Please run the setup SQL in your Supabase Editor to enable cloud memory.');
+        return false;
+      }
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    return false;
   }
 };
 
@@ -37,7 +41,7 @@ export const saveTranscript = async (role: 'user' | 'flash', text: string) => {
  * Retrieves conversation history from the cloud database.
  */
 export const fetchTranscripts = async () => {
-  if (!supabase) return [];
+  if (!supabase || isTableMissing) return [];
   
   try {
     const { data, error } = await supabase
@@ -47,7 +51,10 @@ export const fetchTranscripts = async () => {
       .limit(50);
     
     if (error) {
-      console.error('Database Fetch Error:', error);
+      if (error.message.includes('Could not find the table')) {
+        isTableMissing = true;
+        console.warn('FLASH_DB_NOTICE: Memory table not found. Operating in local mode.');
+      }
       return [];
     }
     
@@ -56,8 +63,7 @@ export const fetchTranscripts = async () => {
       text: item.content,
       timestamp: new Date(item.created_at)
     }));
-  } catch (err) {
-    console.error('Supabase fetch failed:', err);
+  } catch (err: any) {
     return [];
   }
 };

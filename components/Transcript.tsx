@@ -2,62 +2,67 @@
 import React, { useEffect, useRef } from 'react';
 import { TranscriptEntry } from '../types';
 
-interface TranscriptProps {
-  entries: TranscriptEntry[];
-  isSpeaking?: boolean;
-  isListening?: boolean;
-  onRunCode?: (code: string) => void;
-}
-
-const Transcript: React.FC<TranscriptProps> = ({ entries, isSpeaking, isListening, onRunCode }) => {
+export default function Transcript({ entries }: { entries: TranscriptEntry[] }) {
   const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [entries]);
+  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [entries]);
 
   return (
-    <div className="glass-panel h-full rounded-lg flex flex-col border-white/10 bg-[#0a0a0c]/80 overflow-hidden">
-      <div className="h-10 flex items-center px-4 border-b border-white/5 bg-black/60 shrink-0">
-        <svg className="w-4 h-4 text-cyan-400 mr-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-        <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-300 uppercase">TRANSCRIPT</span>
+    <div className="glass-panel h-full flex flex-col overflow-hidden border-cyan-500/10">
+      <div className="h-12 flex items-center justify-between px-4 widget-header shrink-0">
+        <span className="text-zinc-200">Conversation</span>
+        <div className="flex gap-2">
+          <button className="px-3 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> 
+            Clear
+          </button>
+          <button className="px-3 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> 
+            Extract Conversation
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 p-4 custom-scrollbar bg-black/10">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar bg-black/20">
         {entries.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center opacity-20">
-            <svg className="w-8 h-8 text-zinc-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-            <span className="text-[10px] tracking-widest font-bold text-zinc-500">AWAITING VOICE LINK</span>
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="bg-[#0b141a]/80 border border-cyan-900/30 p-6 rounded-2xl max-w-[90%] shadow-2xl">
+              <p className="text-[12px] text-cyan-50/80 leading-relaxed font-medium">
+                Hello, I am FLASH. FLASH backend is online. Some features may be limited. How can I assist you today sir?
+              </p>
+              <div className="text-[8px] text-zinc-600 mt-3 text-right font-mono">2:44 PM</div>
+            </div>
           </div>
         ) : (
-          entries.map((entry, idx) => (
-            <div key={idx} className={`flex flex-col ${entry.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[95%] px-4 py-3 rounded-2xl text-[11.5px] leading-relaxed shadow-lg ${
-                entry.role === 'user' 
-                ? 'bg-zinc-800/90 text-zinc-100 rounded-tr-none' 
-                : 'bg-[#1a1a1e] border border-white/10 text-cyan-50/90 rounded-tl-none'
+          entries.map((e, idx) => (
+            <div key={idx} className={`flex flex-col ${e.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[85%] px-5 py-4 rounded-2xl text-[12px] leading-relaxed shadow-lg ${
+                e.role === 'user' 
+                ? 'bg-[#1c1f21] text-zinc-100 rounded-tr-none' 
+                : 'bg-[#0b141a] border border-cyan-900/40 text-cyan-50/90 rounded-tl-none'
               }`}>
-                <p className="whitespace-pre-wrap">{entry.text}</p>
+                {e.text}
+                <div className="text-[7px] text-zinc-600 mt-2.5 font-mono uppercase tracking-widest">
+                  {e.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </div>
               </div>
-              <span className="text-[7.5px] text-zinc-600 mt-1.5 px-1 font-mono uppercase tracking-wider">
-                {entry.role === 'flash' ? 'FLASH' : 'YOU'} // {entry.timestamp.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
-              </span>
             </div>
           ))
         )}
         <div ref={endRef} />
       </div>
 
-      <div className="p-3 border-t border-white/5 bg-black/60">
-        <div className="flex items-center space-x-2.5">
-           <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-cyan-500 shadow-[0_0_8px_cyan]' : (isListening ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-zinc-800')} animate-pulse`} />
-           <span className="text-[8.5px] font-mono uppercase tracking-widest text-zinc-500">
-             {isSpeaking ? 'FLASH SPEAKING...' : (isListening ? 'LISTENING...' : 'SYSTEM STANDBY')}
-           </span>
+      <div className="p-4 border-t border-white/5 bg-black/40">
+        <div className="relative group">
+          <input 
+            type="text" 
+            placeholder="Type a message..." 
+            className="w-full bg-[#0a0d0f] border border-white/5 rounded-lg pl-5 pr-12 py-3.5 text-[12px] text-zinc-300 outline-none focus:border-cyan-500/30 transition-all placeholder:text-zinc-700 shadow-inner" 
+          />
+          <button className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 bg-cyan-600/10 text-cyan-400 rounded-md border border-cyan-500/20 hover:bg-cyan-600/20 transition-all shadow-lg">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+          </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default Transcript;
+}
