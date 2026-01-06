@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SystemStatus } from '../types';
 
@@ -9,7 +8,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ status, activeTab, setActiveTab }) => {
-  const tabs = ['DASHBOARD', 'CONTACTS', 'NOTES', 'CONNECT', 'PHONE'];
+  // Synchronized tabs with App.tsx conditional rendering logic
+  const tabs = ['DASHBOARD', 'VISION', 'METRICS', 'PYTHON', 'LOG'];
   
   return (
     <header className="flex items-center justify-between px-2 h-12 bg-black/40 border-b border-white/10 shrink-0 z-50">
@@ -25,11 +25,7 @@ const Header: React.FC<HeaderProps> = ({ status, activeTab, setActiveTab }) => {
                 : 'text-zinc-500 border-transparent hover:text-zinc-300'
               }`}
             >
-              {tab === 'PHONE' ? (
-                <div className="flex items-center gap-1.5">
-                  PHONE <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                </div>
-              ) : tab}
+              {tab}
             </button>
           ))}
         </div>
@@ -37,18 +33,18 @@ const Header: React.FC<HeaderProps> = ({ status, activeTab, setActiveTab }) => {
 
       <div className="flex items-center space-x-6 pr-4">
         <div className="flex items-center space-x-2">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-          <span className="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">{status}</span>
+          <div className={`h-2 w-2 rounded-full ${status === SystemStatus.ONLINE ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
+          <span className={`text-[10px] font-bold tracking-widest uppercase ${status === SystemStatus.ONLINE ? 'text-emerald-500' : 'text-amber-500'}`}>{status}</span>
         </div>
         
         <div className="hidden lg:flex items-center space-x-4 text-zinc-500 font-mono text-[9px]">
           <span className="tracking-widest flex items-center gap-2">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            SYSTEM READY
+            <svg className="w-3.5 h-3.5 text-cyan-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            FLASH_CORE
           </span>
           <span className="tracking-widest flex items-center gap-2">
-             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>
-             NET LEVEL
+             <svg className="w-3.5 h-3.5 text-cyan-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>
+             SYNC_ACTIVE
           </span>
         </div>
       </div>

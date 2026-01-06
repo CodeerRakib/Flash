@@ -1,21 +1,31 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+/**
+ * Flash System Cloud Memory Configuration
+ * Uses provided credentials to ensure persistence is active.
+ */
+const supabaseUrl = process.env.SUPABASE_URL || 'https://ujyrusqbwdcyfybyuszn.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Qf5cXlKcAxm70X57sRxrcw_vYCnGBKk';
 
-// Only initialize if both URL and Key are provided to prevent "supabaseUrl is required" error
-export const supabase = (supabaseUrl && supabaseAnonKey) 
+// Robust initialization check: prevent "supabaseUrl is required" error by verifying URL presence and format.
+export const supabase = (supabaseUrl && supabaseUrl.startsWith('http')) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
+/**
+ * Saves a transcript entry to the cloud database.
+ */
 export const saveTranscript = async (role: 'user' | 'flash', text: string) => {
   if (!supabase) return;
   
   try {
     const { error } = await supabase
       .from('flash_transcripts')
-      .insert([{ role, content: text, created_at: new Date().toISOString() }]);
+      .insert([{ 
+        role, 
+        content: text, 
+        created_at: new Date().toISOString() 
+      }]);
     
     if (error) console.error('Database Sync Error:', error);
   } catch (err) {
@@ -23,6 +33,9 @@ export const saveTranscript = async (role: 'user' | 'flash', text: string) => {
   }
 };
 
+/**
+ * Retrieves conversation history from the cloud database.
+ */
 export const fetchTranscripts = async () => {
   if (!supabase) return [];
   
