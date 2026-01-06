@@ -26,47 +26,55 @@ const CoreSystem: React.FC<CoreSystemProps> = ({ isProcessing, isListening, isSp
       ctx.clearRect(0, 0, cw, ch);
       const cx = cw / 2;
       const cy = ch / 2;
-      const opacity = isListening || isSpeaking ? 1 : 0.4;
-
-      // Concentric UI Rings
-      ctx.setLineDash([]);
-      ctx.lineWidth = 1;
       
-      // Outer dim ring
-      ctx.strokeStyle = `rgba(34, 211, 238, ${opacity * 0.05})`;
-      ctx.beginPath(); ctx.arc(cx, cy, 180, 0, Math.PI * 2); ctx.stroke();
+      // Opacity logic for rings
+      const baseOpacity = isListening || isSpeaking || isProcessing ? 1 : 0.3;
 
-      // Main rotating rings
-      for (let i = 0; i < 3; i++) {
-        const radius = 100 + i * 25;
-        const speed = 0.0004 * (i + 1);
-        const start = time * speed;
-        ctx.strokeStyle = `rgba(34, 211, 238, ${opacity * (0.3 - i * 0.1)})`;
-        ctx.lineWidth = 2;
+      // Rotating Rings
+      for (let i = 0; i < 4; i++) {
+        const radius = 90 + i * 30;
+        const rotationSpeed = isProcessing ? 0.002 : (0.0005 * (i + 1));
+        const start = time * rotationSpeed * (i % 2 === 0 ? 1 : -1);
+        
+        ctx.lineWidth = i === 0 ? 2 : 1;
+        ctx.strokeStyle = `rgba(34, 211, 238, ${baseOpacity * (0.4 - i * 0.1)})`;
+        
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, start, start + Math.PI * 1.2);
+        ctx.arc(cx, cy, radius, start, start + Math.PI * (0.5 + i * 0.25));
+        ctx.stroke();
+        
+        // Secondary arcs for more detail
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, start + Math.PI, start + Math.PI * 1.2);
         ctx.stroke();
       }
 
-      // Pulsing Center Glow
-      const pulse = 1 + Math.sin(time * 0.003) * 0.05;
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70 * pulse);
-      grad.addColorStop(0, `rgba(34, 211, 238, ${opacity * 0.2})`);
+      // Center Pulsing Glow
+      const pulse = 1 + Math.sin(time * (isProcessing ? 0.01 : 0.003)) * 0.08;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60 * pulse);
+      grad.addColorStop(0, `rgba(34, 211, 238, ${baseOpacity * (isProcessing ? 0.4 : 0.2)})`);
       grad.addColorStop(1, 'transparent');
       ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(cx, cy, 70 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 60 * pulse, 0, Math.PI * 2); ctx.fill();
 
-      // Audio Bars (matching the image center)
-      const barCount = 10;
-      const barWidth = 4;
-      const gap = 3;
+      // Localized Audio Bars (Central HUD Component)
+      const barCount = 12;
+      const barWidth = 3;
+      const gap = 4;
       const totalW = barCount * (barWidth + gap);
-      ctx.fillStyle = `rgba(34, 211, 238, ${opacity * 0.8})`;
+      
+      ctx.fillStyle = isSpeaking ? '#22d3ee' : isProcessing ? 'rgba(34, 211, 238, 0.4)' : 'rgba(34, 211, 238, 0.1)';
       
       for (let i = 0; i < barCount; i++) {
-        const h = (isListening || isSpeaking) 
-          ? (5 + Math.random() * 25) 
-          : 6;
+        let h = 4; // Flatline
+        if (isSpeaking) {
+          h = 10 + Math.sin(time * 0.01 + i) * 20;
+        } else if (isListening) {
+          h = 6 + Math.random() * 8;
+        } else if (isProcessing) {
+          h = 4 + Math.sin(time * 0.005 + i) * 6;
+        }
+        
         const x = cx - totalW / 2 + i * (barWidth + gap);
         ctx.fillRect(x, cy - h / 2, barWidth, h);
       }
@@ -76,12 +84,12 @@ const CoreSystem: React.FC<CoreSystemProps> = ({ isProcessing, isListening, isSp
 
     animate(0);
     return () => cancelAnimationFrame(frameId);
-  }, [isListening, isSpeaking]);
+  }, [isListening, isSpeaking, isProcessing]);
 
   return (
     <div className="relative flex items-center justify-center">
-      <div className="absolute inset-0 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
-      <canvas ref={canvasRef} className="w-[450px] h-[450px]" />
+      <div className="absolute inset-0 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
+      <canvas ref={canvasRef} className="w-[400px] h-[400px]" />
     </div>
   );
 };
