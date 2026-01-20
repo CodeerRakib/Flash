@@ -17,8 +17,8 @@ const CoreSystem: React.FC<CoreSystemProps> = ({ isProcessing, isListening, isSp
     if (!ctx) return;
 
     let frameId: number;
-    const cw = 500;
-    const ch = 500;
+    const cw = 800;
+    const ch = 800;
     canvas.width = cw;
     canvas.height = ch;
 
@@ -27,56 +27,115 @@ const CoreSystem: React.FC<CoreSystemProps> = ({ isProcessing, isListening, isSp
       const cx = cw / 2;
       const cy = ch / 2;
       
-      // Opacity logic for rings
-      const baseOpacity = isListening || isSpeaking || isProcessing ? 1 : 0.3;
+      const active = isListening || isSpeaking || isProcessing;
+      const baseOpacity = active ? 1 : 0.4;
+      const color = active ? 'rgba(34, 211, 238, ' : 'rgba(148, 163, 184, ';
 
-      // Rotating Rings
-      for (let i = 0; i < 4; i++) {
-        const radius = 90 + i * 30;
-        const rotationSpeed = isProcessing ? 0.002 : (0.0005 * (i + 1));
-        const start = time * rotationSpeed * (i % 2 === 0 ? 1 : -1);
+      // Global Rotation for the entire stack
+      const globalRot = time * 0.0001;
+
+      // 1. External Orbiting Geometry (Large Arcs)
+      for (let i = 0; i < 8; i++) {
+        const radius = 120 + i * 28;
+        const speed = 0.0005 * (i + 1);
+        const rotation = time * speed * (i % 2 === 0 ? 1 : -1) + globalRot;
         
-        ctx.lineWidth = i === 0 ? 2 : 1;
-        ctx.strokeStyle = `rgba(34, 211, 238, ${baseOpacity * (0.4 - i * 0.1)})`;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rotation);
+        
+        ctx.strokeStyle = `${color}${baseOpacity * (0.4 - i * 0.04)})`;
+        ctx.lineWidth = i % 2 === 0 ? 2 : 1;
+        
+        // Broken dash pattern
+        ctx.setLineDash([20, 40, 10, 80]);
         
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, start, start + Math.PI * (0.5 + i * 0.25));
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Secondary arcs for more detail
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, start + Math.PI, start + Math.PI * 1.2);
-        ctx.stroke();
-      }
-
-      // Center Pulsing Glow
-      const pulse = 1 + Math.sin(time * (isProcessing ? 0.01 : 0.003)) * 0.08;
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60 * pulse);
-      grad.addColorStop(0, `rgba(34, 211, 238, ${baseOpacity * (isProcessing ? 0.4 : 0.2)})`);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(cx, cy, 60 * pulse, 0, Math.PI * 2); ctx.fill();
-
-      // Localized Audio Bars (Central HUD Component)
-      const barCount = 12;
-      const barWidth = 3;
-      const gap = 4;
-      const totalW = barCount * (barWidth + gap);
-      
-      ctx.fillStyle = isSpeaking ? '#22d3ee' : isProcessing ? 'rgba(34, 211, 238, 0.4)' : 'rgba(34, 211, 238, 0.1)';
-      
-      for (let i = 0; i < barCount; i++) {
-        let h = 4; // Flatline
-        if (isSpeaking) {
-          h = 10 + Math.sin(time * 0.01 + i) * 20;
-        } else if (isListening) {
-          h = 6 + Math.random() * 8;
-        } else if (isProcessing) {
-          h = 4 + Math.sin(time * 0.005 + i) * 6;
+        // Decorative triangular markers
+        if (i % 3 === 0 && active) {
+            ctx.fillStyle = `rgba(34, 211, 238, ${baseOpacity * 0.6})`;
+            ctx.beginPath();
+            ctx.moveTo(radius, -4);
+            ctx.lineTo(radius + 8, 0);
+            ctx.lineTo(radius, 4);
+            ctx.fill();
         }
         
-        const x = cx - totalW / 2 + i * (barWidth + gap);
-        ctx.fillRect(x, cy - h / 2, barWidth, h);
+        ctx.restore();
+      }
+
+      // 2. The Core "Reactor" Center
+      const pulseSpeed = isProcessing ? 0.012 : isSpeaking ? 0.008 : 0.003;
+      const pulse = 1 + Math.sin(time * pulseSpeed) * 0.08;
+      
+      // Outer Glow
+      const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 140 * pulse);
+      glowGrad.addColorStop(0, `${color}${active ? 0.3 : 0.1})`);
+      glowGrad.addColorStop(0.5, `${color}0.05)`);
+      glowGrad.addColorStop(1, `${color}0)`);
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 140 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner Core Ring
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-time * 0.001);
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 15]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 80 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Dynamic Visualizer Frequency Bars (Circular)
+      if (active) {
+          ctx.save();
+          ctx.translate(cx, cy);
+          const barCount = 64;
+          const innerR = 85 * pulse;
+          
+          for (let i = 0; i < barCount; i++) {
+            const angle = (i / barCount) * Math.PI * 2;
+            let magnitude = 10;
+            
+            if (isSpeaking) magnitude = 15 + Math.random() * 45;
+            else if (isListening) magnitude = 10 + Math.random() * 25;
+            else if (isProcessing) magnitude = 12 + Math.sin(time * 0.02 + i) * 10;
+
+            const x1 = Math.cos(angle) * innerR;
+            const y1 = Math.sin(angle) * innerR;
+            const x2 = Math.cos(angle) * (innerR + magnitude);
+            const y2 = Math.sin(angle) * (innerR + magnitude);
+
+            ctx.strokeStyle = `rgba(34, 211, 238, ${0.4 + (magnitude / 60)})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          }
+          ctx.restore();
+      }
+
+      // 4. Floating Particles (Data Bits)
+      if (active) {
+        ctx.fillStyle = '#22d3ee';
+        for(let i=0; i<12; i++) {
+           const angle = (time * 0.0005 + (i * 0.52)) % (Math.PI * 2);
+           const dist = 220 + Math.sin(time * 0.002 + i) * 30;
+           const px = cx + Math.cos(angle) * dist;
+           const py = cy + Math.sin(angle) * dist;
+           const size = 1 + Math.random() * 2;
+           ctx.globalAlpha = 0.5 + Math.sin(time * 0.01 + i) * 0.4;
+           ctx.fillRect(px, py, size, size);
+        }
+        ctx.globalAlpha = 1;
       }
 
       frameId = requestAnimationFrame(animate);
@@ -88,8 +147,8 @@ const CoreSystem: React.FC<CoreSystemProps> = ({ isProcessing, isListening, isSp
 
   return (
     <div className="relative flex items-center justify-center">
-      <div className="absolute inset-0 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
-      <canvas ref={canvasRef} className="w-[400px] h-[400px]" />
+      <div className={`absolute inset-0 bg-cyan-500/10 rounded-full blur-[180px] transition-opacity duration-1000 ${isListening || isSpeaking ? 'opacity-50' : 'opacity-15'}`} />
+      <canvas ref={canvasRef} className="w-[600px] h-[600px] pointer-events-none scale-110" />
     </div>
   );
 };

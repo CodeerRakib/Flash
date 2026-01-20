@@ -9,6 +9,7 @@ export interface TranscriptEntry {
   role: 'user' | 'flash';
   text: string;
   timestamp: Date;
+  links?: { title: string; uri: string }[];
 }
 
 export enum SystemStatus {

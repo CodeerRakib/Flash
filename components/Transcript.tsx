@@ -1,67 +1,91 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TranscriptEntry } from '../types';
 
-export default function Transcript({ entries }: { entries: TranscriptEntry[] }) {
+interface TranscriptProps {
+  entries: TranscriptEntry[];
+  onSend?: (text: string) => void;
+}
+
+export default function Transcript({ entries, onSend }: TranscriptProps) {
+  const [inputValue, setInputValue] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [entries]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [entries]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim() && onSend) {
+      onSend(inputValue.trim());
+      setInputValue('');
+    }
+  };
 
   return (
-    <div className="glass-panel h-full flex flex-col overflow-hidden border-cyan-500/10">
-      <div className="h-12 flex items-center justify-between px-4 widget-header shrink-0">
-        <span className="text-zinc-200">Conversation</span>
-        <div className="flex gap-2">
-          <button className="px-3 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> 
-            Clear
-          </button>
-          <button className="px-3 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> 
-            Extract Conversation
-          </button>
+    <div className="glass-panel h-full flex flex-col overflow-hidden !rounded-2xl !clip-none border-white/5 bg-[#02080c]/60">
+      <div className="h-10 flex items-center justify-between px-5 widget-header shrink-0 !bg-transparent border-none">
+        <div className="flex items-center gap-3">
+          <span className="font-hud tracking-widest text-[9px] uppercase text-zinc-500">Secure Neural Stream</span>
+        </div>
+        <div className="flex gap-1">
+           <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/20" />
+           <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
+           <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/60" />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar bg-black/20">
-        {entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="bg-[#0b141a]/80 border border-cyan-900/30 p-6 rounded-2xl max-w-[90%] shadow-2xl">
-              <p className="text-[12px] text-cyan-50/80 leading-relaxed font-medium">
-                Hello, I am FLASH. FLASH backend is online. Some features may be limited. How can I assist you today sir?
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {entries.map((e, idx) => (
+          <div key={idx} className={`flex flex-col ${e.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+            <div className={`group relative max-w-[85%] px-4 py-2.5 rounded-2xl transition-all ${
+              e.role === 'user' 
+              ? 'bg-zinc-800/40 border border-white/5 text-zinc-300 rounded-tr-none' 
+              : 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-50 rounded-tl-none'
+            }`}>
+              <div className={`text-[7px] mb-1 font-mono font-bold uppercase tracking-widest ${e.role === 'user' ? 'text-zinc-600 text-right' : 'text-cyan-600'}`}>
+                {e.role === 'user' ? 'LOCAL USER' : 'SHREE CORE'}
+              </div>
+              
+              <p className="text-[12px] leading-relaxed tracking-wide font-sans font-medium whitespace-pre-wrap">
+                {e.text}
               </p>
-              <div className="text-[8px] text-zinc-600 mt-3 text-right font-mono">2:44 PM</div>
+
+              {e.links && e.links.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-cyan-500/10 flex flex-wrap gap-1.5">
+                  {e.links.map((link, lIdx) => (
+                    <a 
+                      key={lIdx} 
+                      href={link.uri} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[8px] bg-cyan-500/10 px-1.5 py-0.5 text-cyan-400 flex items-center gap-1 font-mono border border-cyan-500/10 rounded"
+                    >
+                      {link.title || 'Source'}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          entries.map((e, idx) => (
-            <div key={idx} className={`flex flex-col ${e.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[85%] px-5 py-4 rounded-2xl text-[12px] leading-relaxed shadow-lg ${
-                e.role === 'user' 
-                ? 'bg-[#1c1f21] text-zinc-100 rounded-tr-none' 
-                : 'bg-[#0b141a] border border-cyan-900/40 text-cyan-50/90 rounded-tl-none'
-              }`}>
-                {e.text}
-                <div className="text-[7px] text-zinc-600 mt-2.5 font-mono uppercase tracking-widest">
-                  {e.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+        ))}
         <div ref={endRef} />
       </div>
 
-      <div className="p-4 border-t border-white/5 bg-black/40">
-        <div className="relative group">
+      <div className="p-3 bg-black/40 shrink-0">
+        <form onSubmit={handleSubmit} className="relative">
           <input 
             type="text" 
-            placeholder="Type a message..." 
-            className="w-full bg-[#0a0d0f] border border-white/5 rounded-lg pl-5 pr-12 py-3.5 text-[12px] text-zinc-300 outline-none focus:border-cyan-500/30 transition-all placeholder:text-zinc-700 shadow-inner" 
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Neural input..." 
+            className="w-full bg-zinc-900/50 border border-white/5 rounded-xl px-4 py-2 text-[11px] text-zinc-300 outline-none focus:border-cyan-500/40 transition-all font-sans" 
           />
-          <button className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 bg-cyan-600/10 text-cyan-400 rounded-md border border-cyan-500/20 hover:bg-cyan-600/20 transition-all shadow-lg">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500">
+             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 {
-  "name": "Flash - Jarvis AI",
-  "description": "An advanced, proactive personal AI assistant with a futuristic Jarvis-inspired dashboard, real-time audio interaction, and system monitoring visualization.",
+  "name": "Shree - Personal AI Assistant",
+  "description": "An advanced, mobile-optimized personal assistant with high-intelligence voice interaction, bilingual support, and real-time neural link grounding.",
   "requestFramePermissions": [
     "camera",
     "microphone"
